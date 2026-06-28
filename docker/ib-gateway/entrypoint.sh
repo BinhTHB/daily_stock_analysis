@@ -2,7 +2,8 @@
 set -e
 
 # Write IBC config from env (IBKR_USERNAME / IBKR_PASSWORD)
-cat > /opt/ibc/config.ini <<EOF
+mkdir -p $HOME/ibc
+cat > $HOME/ibc/config.ini <<EOF
 [Settings]
 IbLoginId=${IBKR_USERNAME}
 IbPassword=${IBKR_PASSWORD}
@@ -27,12 +28,14 @@ Xvfb :99 -screen 0 1280x1024x24 &
 sleep 1
 export DISPLAY=:99
 
-# Start IB Gateway via IBC — find version dir automatically
+# Start IB Gateway via IBC using gatewaystart.sh
 GW_VER=$(ls /root/Jts/ibgateway/ 2>/dev/null | head -1)
-if [ -z "$GW_VER" ]; then
-  GW_VER=1045
-fi
-/opt/ibc/scripts/ibcstart.sh "$GW_VER" -g --mode=paper &
+TWS_MAJOR_VRSN=${GW_VER:-1045}
+echo "Configuring gatewaystart.sh with Gateway version $TWS_MAJOR_VRSN..."
+sed -i "s/TWS_MAJOR_VRSN=1019/TWS_MAJOR_VRSN=$TWS_MAJOR_VRSN/g" /opt/ibc/gatewaystart.sh
+sed -i "s/TRADING_MODE=/TRADING_MODE=${IBKR_TRADING_MODE:-paper}/g" /opt/ibc/gatewaystart.sh
+
+/opt/ibc/gatewaystart.sh -inline &
 
 # Wait until API port is ready (max 120s)
 echo "Waiting for IB Gateway API port 4002..."
