@@ -985,13 +985,34 @@ def run_full_analysis(
             )
             svc.connect()
             if svc.is_connected:
+                # Retrieve cash balance and active positions for dynamic calculation
+                info = svc.get_account_info()
+                cash = info.cash_balance if info else 0.0
+                positions = svc.get_positions()
+                current_positions = {pos.symbol.upper(): pos.quantity for pos in positions}
+
                 for r in (results or []):
                     advice = (getattr(r, 'operation_advice', '') or '').lower()
-                    if advice in ('买入', 'mua', 'buy', 'add', '加仓'):
+                    decision_type = (getattr(r, 'decision_type', '') or '').lower()
+                    symbol = (getattr(r, 'code', '') or '').upper()
+                    price = getattr(r, 'current_price', None)
+
+                    # 1. Handle BUY decision
+                    if advice in ('买入', 'mua', 'buy', 'add', '加仓') or decision_type == 'buy':
                         side = OrderSide.BUY
-                        qty = 10
+                        # Dynamically allocate 5% of cash balance per buy order
+                        if price and price > 0:
+                            target_val = cash * 0.05
+                            qty = int(target_val / price)
+                            if qty <= 0:
+                                qty = 1  # Buy at least 1 share if cash is tight
+                            logger.info("Dynamic qty for BUY %s: target=$%.2f, price=%.2f -> qty=%d", symbol, target_val, price, qty)
+                        else:
+                            qty = 10
+                            logger.warning("No price info for %s, fallback to qty=%d", symbol, qty)
+
                         order_result = svc.execute_signal(
-                            symbol=getattr(r, 'code', '') or '',
+                            symbol=symbol,
                             side=side,
                             quantity=qty,
                             order_type="MKT",
@@ -999,12 +1020,39 @@ def run_full_analysis(
                         )
                         if order_result.success:
                             logger.info(
-                                "Simulated trade: %s %s %.2f @ %.2f",
+                                "Trade executed: %s %s %d shares @ %.2f",
                                 order_result.symbol,
                                 order_result.side.value,
                                 order_result.filled_quantity,
                                 order_result.avg_fill_price,
                             )
+                            # Deduct from cash tracking to avoid overallocating in the same run
+                            cash -= (order_result.avg_fill_price * order_result.filled_quantity)
+
+                    # 2. Handle SELL decision
+                    elif advice in ('卖出', 'bán', 'sell', '减仓', '減倉', 'reduce') or decision_type == 'sell':
+                        owned_qty = current_positions.get(symbol, 0.0)
+                        if owned_qty > 0:
+                            side = OrderSide.SELL
+                            logger.info("Close position for SELL %s: owned qty=%d", symbol, owned_qty)
+                            order_result = svc.execute_signal(
+                                symbol=symbol,
+                                side=side,
+                                quantity=owned_qty,
+                                order_type="MKT",
+                                note=f"auto analysis score={getattr(r,'sentiment_score',0)}",
+                            )
+                            if order_result.success:
+                                logger.info(
+                                    "Trade executed: %s %s %d shares @ %.2f",
+                                    order_result.symbol,
+                                    order_result.side.value,
+                                    order_result.filled_quantity,
+                                    order_result.avg_fill_price,
+                                )
+                        else:
+                            logger.info("Advice is SELL for %s but no active position held.", symbol)
+
                 logger.info("Simulated portfolio:\n%s", svc.report_summary())
             svc.disconnect()
 
