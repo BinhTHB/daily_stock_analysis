@@ -76,19 +76,25 @@ class IBKRAdapter(BaseBroker):
                 f"IBKR connection failed: {exc}"
             ) from exc
 
-        # Verify connection by requesting account summary
-        try:
-            account_summary = self._ib.accountSummary()
-            if not account_summary:
-                raise BrokerAuthError(
-                    "IBKR connected but no account data returned. "
-                    "Verify API port (7497 paper / 7496 live) and account permissions."
-                )
-        except Exception as exc:
+        # Verify connection — retry up to 45s for IBC auto-login
+        import time
+        last_exc = None
+        for attempt in range(15):  # 15 retries × 3s = 45s
+            try:
+                account_summary = self._ib.accountSummary()
+                if account_summary:
+                    break
+            except Exception as exc:
+                last_exc = exc
+                time.sleep(3)
+                continue
+        else:
             self._ib.disconnect()
-            raise BrokerAuthError(
-                f"IBKR authentication failed: {exc}"
-            ) from exc
+            msg = (
+                "IBKR connected but auth/login failed after 45s retries. "
+                "Check IBKR_USERNAME/IBKR_PASSWORD secrets and TradingMode."
+            )
+            raise BrokerAuthError(msg) from last_exc
 
         self._connected_id = f"{self.config.host}:{self.config.port}"
         logger.info(
