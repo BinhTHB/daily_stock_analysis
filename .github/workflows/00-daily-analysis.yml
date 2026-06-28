@@ -22,6 +22,11 @@ on:
         required: false
         default: false
         type: boolean
+      demo_mode:
+        description: '使用 Demo 账号运行（测试用途）'
+        required: false
+        default: false
+        type: boolean
 
 # 并发控制：同一时间只运行一个分析任务
 concurrency:
@@ -550,9 +555,9 @@ jobs:
 
       - name: Start IB Gateway Container
         env:
-          IBKR_USERNAME: ${{ secrets.IBKR_USERNAME }}
-          IBKR_PASSWORD: ${{ secrets.IBKR_PASSWORD }}
-          IBKR_TRADING_MODE: ${{ vars.IBKR_TRADING_MODE || 'paper' }}
+          IBKR_USERNAME: ${{ github.event.inputs.demo_mode == 'true' && 'edemo' || secrets.IBKR_USERNAME }}
+          IBKR_PASSWORD: ${{ github.event.inputs.demo_mode == 'true' && 'demouser' || secrets.IBKR_PASSWORD }}
+          IBKR_TRADING_MODE: ${{ github.event.inputs.demo_mode == 'true' && 'paper' || vars.IBKR_TRADING_MODE || 'paper' }}
         run: |
           echo "🚀 Starting IB Gateway container..."
           docker run -d --name ib-gw \
