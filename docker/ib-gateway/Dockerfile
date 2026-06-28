@@ -28,7 +28,7 @@ RUN wget -q "https://github.com/IbcAlpha/IBC/releases/download/3.24.0/IBCLinux-3
     && mkdir -p /opt/ibc \
     && unzip ibc.zip -d /opt/ibc \
     && rm ibc.zip \
-    && chmod +x /opt/ibc/*.sh /opt/ibc/bin/*.sh
+    && chmod +x /opt/ibc/*.sh /opt/ibc/scripts/*.sh
 
 # Configuration templates
 COPY config.ini /opt/ibc/config.ini
