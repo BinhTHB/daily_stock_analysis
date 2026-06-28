@@ -24,7 +24,7 @@ RUN wget -q https://download2.interactivebrokers.com/installers/ibgateway/stable
     && rm ibgateway.sh
 
 # Install IBC
-RUN wget -q https://github.com/IbcAlpha/IBC/releases/download/3.18.0/IBCLinux-3.18.0.zip -O ibc.zip \
+RUN wget -q "https://github.com/IbcAlpha/IBC/releases/download/3.24.0/IBCLinux-3.24.0.zip" -O ibc.zip \
     && mkdir -p /opt/ibc \
     && unzip ibc.zip -d /opt/ibc \
     && rm ibc.zip \
