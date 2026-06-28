@@ -7,6 +7,7 @@ instance.  Uses port 7497 (TWS paper) / 4002 (Gateway paper) by default.
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -58,41 +59,44 @@ class IBKRAdapter(BaseBroker):
 
     def connect(self) -> None:
         ib = _get_ib()
-        self._ib = ib.IB()
-        try:
-            self._ib.connect(
-                host=self.config.host,
-                port=self.config.port,
-                clientId=self.config.client_id,
-                timeout=self.config.timeout_seconds,
-            )
-        except ConnectionRefusedError as exc:
-            raise BrokerConnectionError(
-                f"Cannot connect to IBKR at {self.config.host}:{self.config.port}. "
-                "Ensure TWS/Gateway is running with API enabled."
-            ) from exc
-        except Exception as exc:
-            raise BrokerError(
-                f"IBKR connection failed: {exc}"
-            ) from exc
-
-        # Verify connection — retry up to 45s for IBC auto-login
-        import time
         last_exc = None
-        for attempt in range(15):  # 15 retries × 3s = 45s
+        for attempt in range(15):  # 15 attempts × 3s = 45s total
+            self._ib = ib.IB()
+            try:
+                self._ib.connect(
+                    host=self.config.host,
+                    port=self.config.port,
+                    clientId=self.config.client_id,
+                    timeout=10,
+                )
+            except ConnectionRefusedError:
+                # Gateway still starting up
+                time.sleep(3)
+                continue
+            except Exception as exc:
+                # connect may succeed TCP but reset immediately
+                last_exc = exc
+                time.sleep(3)
+                continue
+
+            # Verify auth — IBC may still be logging in
             try:
                 account_summary = self._ib.accountSummary()
                 if account_summary:
                     break
             except Exception as exc:
                 last_exc = exc
+                try:
+                    self._ib.disconnect()
+                except Exception:
+                    pass
                 time.sleep(3)
                 continue
         else:
-            self._ib.disconnect()
             msg = (
-                "IBKR connected but auth/login failed after 45s retries. "
-                "Check IBKR_USERNAME/IBKR_PASSWORD secrets and TradingMode."
+                "IBKR connection/authentication failed after 45s. "
+                "Check IBKR_USERNAME/IBKR_PASSWORD secrets, TradingMode, "
+                "and that Gateway accepts the client ID."
             )
             raise BrokerAuthError(msg) from last_exc
 

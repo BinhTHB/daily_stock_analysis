@@ -28,7 +28,7 @@ sleep 1
 export DISPLAY=:99
 
 # Start IB Gateway via IBC
-/opt/ibc/scripts/ibcstart.sh --tws-path=/root/IBGateway --user-home=/root --mode=bot &
+/opt/ibc/scripts/ibcstart.sh --tws-path=/root/IBGateway --mode=bot &
 
 # Wait until API port is ready (max 120s)
 echo "Waiting for IB Gateway API port 4002..."
