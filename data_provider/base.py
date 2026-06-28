@@ -1150,26 +1150,26 @@ class DataFetcherManager:
         if tushare_token:
             optional_fetchers.append(TushareFetcher())  # 会根据 Token 配置自动调整优先级
         else:
-            logger.debug("[数据源初始化] 跳过未配置的 TushareFetcher")
+            logger.debug("[数据源初始化] 跳过未配置的 TushareFetcher -- TushareFetcher skipped (no token)")
 
         if LongbridgeFetcher.has_configured_credentials(config):
             optional_fetchers.append(LongbridgeFetcher())  # 长桥（美股/港股兜底，懒加载）
         else:
-            logger.debug("[数据源初始化] 跳过未配置的 LongbridgeFetcher")
+            logger.debug("[数据源初始化] 跳过未配置的 LongbridgeFetcher -- LongbridgeFetcher skipped (no credentials)")
 
         finnhub_api_key = (getattr(config, "finnhub_api_key", None) or "").strip()
         if finnhub_api_key:
             from .finnhub_fetcher import FinnhubFetcher
             optional_fetchers.append(FinnhubFetcher())
         else:
-            logger.debug("[数据源初始化] 跳过未配置的 FinnhubFetcher")
+            logger.debug("[数据源初始化] 跳过未配置的 FinnhubFetcher -- FinnhubFetcher skipped (no API key)")
 
         alphavantage_api_key = (getattr(config, "alphavantage_api_key", None) or "").strip()
         if alphavantage_api_key:
             from .alphavantage_fetcher import AlphaVantageFetcher
             optional_fetchers.append(AlphaVantageFetcher())
         else:
-            logger.debug("[数据源初始化] 跳过未配置的 AlphaVantageFetcher")
+            logger.debug("[数据源初始化] 跳过未配置的 AlphaVantageFetcher -- AlphaVantageFetcher skipped (no API key)")
 
         # 初始化数据源列表
         self._ensure_concurrency_guards()
@@ -1190,7 +1190,7 @@ class DataFetcherManager:
 
         # 构建优先级说明
         priority_info = ", ".join([f"{f.name}(P{f.priority})" for f in self._get_fetchers_snapshot()])
-        logger.info(f"已初始化 {len(self._fetchers)} 个数据源（按优先级）: {priority_info}")
+        logger.info(f"已初始化 {len(self._fetchers)} 个数据源（按优先级）: {priority_info} — Initialized {len(self._fetchers)} data sources (by priority)")
     
     def add_fetcher(self, fetcher: BaseFetcher) -> None:
         """添加数据源并重新排序"""
@@ -1290,7 +1290,8 @@ class DataFetcherManager:
                         role = "首选" if src_name == source_order[0] else "兜底"
                         logger.info(
                             f"[数据源尝试 {attempt}/{total_fetchers}] [{fetcher.name}] "
-                            f"{market_label} {stock_code} {role}路由..."
+                            f"{market_label} {stock_code} {role}慢速路由... "
+                            f"— Attempting {attempt}/{total_fetchers} using {fetcher.name} for {stock_code}"
                         )
                         record_provider_run_started(
                             data_type="daily_data",
@@ -1433,20 +1434,23 @@ class DataFetcherManager:
                 )
                 logger.warning(
                     f"[数据源失败 {attempt}/{total_fetchers}] [{fetcher.name}] {stock_code}: "
-                    f"error_type={error_type}, reason={error_reason}"
+                    f"error_type={error_type}, reason={error_reason} "
+                    f"— Data source {fetcher.name} failed for {stock_code}"
                 )
                 self._record_daily_source_failure(fetcher, market, error_reason)
                 errors.append(error_msg)
                 if attempt < total_fetchers:
                     next_fetcher = fetchers[attempt]
-                    logger.info(f"[数据源切换] {stock_code}: [{fetcher.name}] -> [{next_fetcher.name}]")
+                    logger.info(f"[数据源切换] {stock_code}: [{fetcher.name}] -> [{next_fetcher.name}] "
+                                f"— Failing over to {next_fetcher.name} for {stock_code}")
                 # 继续尝试下一个数据源
                 continue
         
         # 所有数据源都失败
         error_summary = f"所有数据源获取 {stock_code} 失败:\n" + "\n".join(errors)
         elapsed = time.time() - request_start
-        logger.error(f"[数据源终止] {stock_code} 获取失败: elapsed={elapsed:.2f}s\n{error_summary}")
+        logger.error(f"[数据源终止] {stock_code} 获取失败: elapsed={elapsed:.2f}s\n{error_summary} "
+                     f"— All data sources exhausted for {stock_code}, raising DataFetchError")
         raise DataFetchError(error_summary)
     
     @property
