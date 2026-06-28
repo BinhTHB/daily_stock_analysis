@@ -523,7 +523,7 @@ jobs:
   trade:
     needs: analyze
     runs-on: ubuntu-latest
-    if: ${{ secrets.IBKR_USERNAME != '' && secrets.IBKR_PASSWORD != '' }}
+    if: ${{ vars.IBKR_TRADING_ENABLED == 'true' }}
     timeout-minutes: 20
 
     steps:
