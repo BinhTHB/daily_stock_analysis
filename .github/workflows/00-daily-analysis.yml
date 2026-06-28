@@ -516,3 +516,52 @@ jobs:
             echo "📜 最近日志（最后 30 行）:"
             tail -30 logs/stock_analysis_*.log 2>/dev/null || echo "无日志"
           fi
+
+  # =====================================================
+  # Trade execution — only on self-hosted Windows runner
+  # =====================================================
+  trade:
+    needs: analyze
+    # chỉ chạy khi có runner windows-ibkr đang online
+    # chạy trên runner cloud nếu không có self-hosted → fail gracefully
+    runs-on: [self-hosted, windows-ibkr]
+    if: ${{ vars.IBKR_ENABLED == 'true' }}
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+
+      - name: 设置 Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Đọc .env
+        run: |
+          if [ -f .env ]; then
+            echo "📄 .env found"
+            set -a; source .env; set +a
+          fi
+
+      - name: Execute IBKR trades
+        env:
+          BROKER_ENABLED: 'true'
+          BROKER_PROVIDER: 'ibkr'
+          BROKER_SIMULATE: 'false'
+          BROKER_HOST: '127.0.0.1'
+          BROKER_PORT: '7497'
+          BROKER_CLIENT_ID: ${{ github.run_id }}
+        run: |
+          echo "🔌 IBKR TWS/Gateway + trade execution"
+          FORCE_RUN_ARG=""
+          if [ "${{ github.event.inputs.force_run }}" = "true" ]; then
+            FORCE_RUN_ARG="--force-run"
+          fi
+          python main.py --no-notify $FORCE_RUN_ARG
+          echo "✅ Done"
