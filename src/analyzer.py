@@ -2213,6 +2213,17 @@ class GeminiAnalyzer:
 - Use the common English company name when you are confident; otherwise keep the original listed company name instead of inventing one.
 - This includes `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, nested dashboard text, checklist items, and all narrative summaries.
 """
+        if lang == "vi":
+            return base_prompt + """
+
+## Ngôn ngữ đầu ra (ưu tiên cao nhất)
+
+- Giữ nguyên tất cả các khóa JSON.
+- `decision_type` phải giữ nguyên `buy|hold|sell`.
+- Tất cả giá trị văn bản dành cho người dùng phải được viết bằng Tiếng Việt.
+- Sử dụng tên tiếng Anh của công ty nếu bạn chắc chắn; nếu không, giữ nguyên tên niêm yết gốc.
+- Bao gồm `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, văn bản trong dashboard, danh sách kiểm tra và tất cả tóm tắt tường thuật.
+"""
         return base_prompt + """
 
 ## 输出语言（最高优先级）
