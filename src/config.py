@@ -926,6 +926,16 @@ class Config:
     # 是否保存分析上下文快照（用于历史回溯）
     save_context_snapshot: bool = True
 
+    # === 券商/模拟交易配置 (broker_provider) ===
+    broker_enabled: bool = False               # 总开关: 启用 broker 集成
+    broker_provider: str = "mock"              # 券商类型: mock(模拟)/ibkr(IBKR)
+    broker_host: str = "127.0.0.1"             # IBKR TWS/Gateway 主机
+    broker_port: int = 7497                    # IBKR 端口: 7497(TWS Paper)/7496(TWS Live)/4001(GW Live)/4002(GW Paper)
+    broker_client_id: int = 1                  # IBKR Client ID
+    broker_account_id: Optional[str] = None    # IBKR Account ID (多账户时必填)
+    broker_simulate: bool = True               # 安全开关: True 则始终使用 Mock (防误操作)
+    broker_timeout_seconds: float = 30.0       # 券商 API 超时
+
     # === 回测配置 ===
     backtest_enabled: bool = True
     backtest_eval_window_days: int = 10
@@ -1787,6 +1797,14 @@ class Config:
                 minimum=0.0,
             ),
             save_context_snapshot=os.getenv('SAVE_CONTEXT_SNAPSHOT', 'true').lower() == 'true',
+            broker_enabled=os.getenv('BROKER_ENABLED', 'false').lower() == 'true',
+            broker_provider=os.getenv('BROKER_PROVIDER', 'mock').strip().lower(),
+            broker_host=os.getenv('BROKER_HOST', '127.0.0.1').strip(),
+            broker_port=parse_env_int(os.getenv('BROKER_PORT'), 7497, field_name='BROKER_PORT', minimum=1, maximum=65535),
+            broker_client_id=parse_env_int(os.getenv('BROKER_CLIENT_ID'), 1, field_name='BROKER_CLIENT_ID', minimum=1),
+            broker_account_id=os.getenv('BROKER_ACCOUNT_ID') or None,
+            broker_simulate=os.getenv('BROKER_SIMULATE', 'true').lower() == 'true',
+            broker_timeout_seconds=parse_env_float(os.getenv('BROKER_TIMEOUT_SECONDS'), 30.0, field_name='BROKER_TIMEOUT_SECONDS', minimum=1.0),
             backtest_enabled=os.getenv('BACKTEST_ENABLED', 'true').lower() == 'true',
             backtest_eval_window_days=parse_env_int(os.getenv('BACKTEST_EVAL_WINDOW_DAYS'), 10, field_name='BACKTEST_EVAL_WINDOW_DAYS', minimum=1),
             backtest_min_age_days=parse_env_int(os.getenv('BACKTEST_MIN_AGE_DAYS'), 14, field_name='BACKTEST_MIN_AGE_DAYS', minimum=1),

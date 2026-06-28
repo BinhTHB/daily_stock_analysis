@@ -417,6 +417,12 @@ def parse_arguments() -> argparse.Namespace:
         help='强制回测（即使已有回测结果也重新计算）'
     )
 
+    parser.add_argument(
+        '--simulate-trades',
+        action='store_true',
+        help='启用模拟交易：分析后执行 mock broker 交易（用于测试 IBKR 集成）'
+    )
+
     return parser.parse_args()
 
 
@@ -966,6 +972,38 @@ def run_full_analysis(
                 )
         except Exception as e:
             logger.warning(f"自动回测失败（已忽略）: {e}")
+
+        # === Broker / Simulated trading (post-analysis) ===
+        if getattr(args, 'simulate_trades', False) or getattr(config, 'broker_enabled', False):
+            from broker_provider import OrderSide
+            from src.services.broker_service import BrokerService
+
+            simulate_override = getattr(args, 'simulate_trades', False)
+            svc = BrokerService(simulate=True if simulate_override else None)
+            svc.connect()
+            if svc.is_connected:
+                for r in (results or []):
+                    advice = (getattr(r, 'operation_advice', '') or '').lower()
+                    if advice in ('买入', 'mua', 'buy', 'add', '加仓'):
+                        side = OrderSide.BUY
+                        qty = 10
+                        order_result = svc.execute_signal(
+                            symbol=getattr(r, 'code', '') or '',
+                            side=side,
+                            quantity=qty,
+                            order_type="MKT",
+                            note=f"auto analysis score={getattr(r,'sentiment_score',0)}",
+                        )
+                        if order_result.success:
+                            logger.info(
+                                "Simulated trade: %s %s %.2f @ %.2f",
+                                order_result.symbol,
+                                order_result.side.value,
+                                order_result.filled_quantity,
+                                order_result.avg_fill_price,
+                            )
+                logger.info("Simulated portfolio:\n%s", svc.report_summary())
+            svc.disconnect()
 
         return True
 
