@@ -372,7 +372,20 @@ jobs:
           # ==========================================
           LOG_LEVEL: INFO
           MAX_WORKERS: ${{ vars.MAX_WORKERS || secrets.MAX_WORKERS || '1' }}
-          # 筹码分布：默认 false（云端接口不稳定）；需启用时在 Settings → Variables 添加 ENABLE_CHIP_DISTRIBUTION=true
+
+          # ==========================================
+          # Broker / simulated trading
+          # ==========================================
+          # Cloud runner: chỉ chạy simulated (MockBroker)
+          # Self-hosted runner (Windows + TWS): set BROKER_SIMULATE=false + BROKER_PROVIDER=ibkr
+          BROKER_ENABLED: ${{ vars.BROKER_ENABLED || 'true' }}
+          BROKER_PROVIDER: ${{ vars.BROKER_PROVIDER || 'mock' }}
+          BROKER_SIMULATE: ${{ vars.BROKER_SIMULATE || 'true' }}
+          BROKER_HOST: ${{ vars.BROKER_HOST || '127.0.0.1' }}
+          BROKER_PORT: ${{ vars.BROKER_PORT || '7497' }}
+          BROKER_CLIENT_ID: ${{ vars.BROKER_CLIENT_ID || '1' }}
+
+          # 筹码分布：默认 false（云端接口不稳定）
           ENABLE_CHIP_DISTRIBUTION: ${{ vars.ENABLE_CHIP_DISTRIBUTION || secrets.ENABLE_CHIP_DISTRIBUTION || 'false' }}
           # 实时行情数据源优先级（腾讯有量比且稳定，推荐首选）
           # 可选值: tencent, akshare_sina, efinance, akshare_em, tushare
