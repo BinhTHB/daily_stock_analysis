@@ -535,7 +535,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/ib-gateway-image.tar
-          key: ${{ runner.os }}-ib-gateway-v2-${{ hashFiles('docker/ib-gateway/Dockerfile', 'docker/ib-gateway/config.ini', 'docker/ib-gateway/entrypoint.sh') }}
+          key: ${{ runner.os }}-ib-gateway-v3-${{ hashFiles('docker/ib-gateway/Dockerfile', 'docker/ib-gateway/config.ini', 'docker/ib-gateway/entrypoint.sh') }}
 
       - name: Build IB Gateway Image (no cache hit)
         if: steps.cache-docker.outputs.cache-hit != 'true'
