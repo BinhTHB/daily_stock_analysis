@@ -2763,6 +2763,12 @@ class GeminiAnalyzer:
 
                 model_short = model.split("/")[-1] if "/" in model else model
                 extra = get_thinking_extra_body(model_short)
+                # Append language instruction to user prompt for non-zh output
+                _lang = str(getattr(self._get_runtime_config(), "report_language", "zh")).lower()
+                if _lang.startswith("vi"):
+                    prompt += "\n\n⚠️ IMPORTANT: Output all narrative JSON values (buy_reason, risk_warning, watch_conditions, etc.) in Vietnamese. Do NOT use Chinese. All other structured fields follow the format specified above."
+                elif _lang.startswith("en"):
+                    prompt += "\n\n⚠️ IMPORTANT: Output all narrative JSON values (buy_reason, risk_warning, watch_conditions, etc.) in English. Do NOT use Chinese."
                 call_kwargs: Dict[str, Any] = {
                     "model": model,
                     "messages": [
