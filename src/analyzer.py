@@ -2178,6 +2178,25 @@ class GeminiAnalyzer:
         )
 
     _SCHEMA_VALUE_TRANSLATIONS: ClassVar[Dict[str, str]] = {
+        # Section headers
+        "## 输出格式：决策仪表盘 JSON": "## Output Format: Decision Dashboard JSON",
+        "请严格按照以下 JSON 格式输出，这是一个完整的【决策仪表盘】：": "Output the complete Decision Dashboard JSON strictly following this format:",
+        "你是一位专注于趋势交易的": "You are a trend-trading focused ",
+        "投资分析师，负责生成专业的【决策仪表盘】分析报告。": " investment analyst responsible for generating a professional Decision Dashboard analysis report.",
+        "## 评分标准": "## Scoring Criteria",
+        "## 决策仪表盘核心原则": "## Decision Dashboard Core Principles",
+        "## 可操作性与稳定性约束": "## Actionability & Stability Constraints",
+
+        # Scoring criteria - translated
+        "### 强烈买入（80-100分）：\n- ✅ 多个激活技能同时支持积极结论\n- ✅ 上行空间、触发条件与风险回报清晰\n- ✅ 关键风险已排查，仓位与止损计划明确\n- ✅ 重要数据和情报结论彼此一致\n\n### 买入（60-79分）：\n- ✅ 主信号偏积极，但仍有少量待确认项\n- ✅ 允许存在可控风险或次优入场点\n- ✅ 需要在报告中明确补充观察条件\n\n### 观望（40-59分）：\n- ⚠️ 信号分歧较大，或缺乏足够确认\n- ⚠️ 风险与机会大致均衡\n- ⚠️ 更适合等待触发条件或回避不确定性\n\n### 卖出/减仓（0-39分）：\n- ❌ 主要结论转弱，风险明显高于收益\n- ❌ 触发了止损/失效条件或重大利空\n- ❌ 现有仓位更需要保护而不是进攻": "### Strong Buy (80-100):\n- ✅ Multiple active skills support a positive conclusion\n- ✅ Clear upside potential, trigger conditions, and risk/reward\n- ✅ Key risks reviewed, position and stop-loss plans clear\n- ✅ All important data and intelligence conclusions align\n\n### Buy (60-79):\n- ✅ Main signal is positive but with minor items to confirm\n- ✅ Controllable risks or suboptimal entries are acceptable\n- ✅ Must add watch conditions in the report\n\n### Hold/Watch (40-59):\n- ⚠️ Mixed signals or insufficient confirmation\n- ⚠️ Risk and reward are roughly balanced\n- ⚠️ Better wait for triggers or avoid uncertainty\n\n### Sell/Reduce (0-39):\n- ❌ Main conclusion weakens, risk clearly outweighs reward\n- ❌ Stop-loss/failure conditions or major negative triggered\n- ❌ Protect existing positions rather than attack",
+
+        # Core principles - translated
+        "## 决策仪表盘核心原则\n\n1. **核心结论先行**：一句话说清该买该卖\n2. **分持仓建议**：空仓者和持仓者给不同建议\n3. **精确狙击点**：必须给出具体价格，不说模糊的话\n4. **检查清单可视化**：用 ✅⚠️❌ 明确显示每项检查结果\n5. **风险优先级**：舆情中的风险点要醒目标出": "## Decision Dashboard Core Principles\n\n1. **Core conclusion first**: one sentence about buy or sell\n2. **Separate position advice**: different guidance for holders vs non-holders\n3. **Precision price targets**: give specific price levels, no vague language\n4. **Visual checklist**: use ✅⚠️❌ to show each check result\n5. **Risk priority**: highlight risk points prominently",
+
+        # Constraints - translated
+        "## 可操作性与稳定性约束\n\n- 不得仅因为单日涨跌或评分跨线就在“买入/卖出”之间剧烈切换。\n- 操作建议必须同时参考价格位置（支撑/压力位）、量能/筹码、主力资金流向和风险事件。\n- 股价位于支撑与压力之间、资金流不明确时，优先输出“持有/震荡/观望/洗盘观察”等可执行的中性建议；`decision_type` 仍保持 `hold`。\n- 只有在接近支撑确认或有效突破压力，且资金流/量价配合时，才能给出买入；接近压力且资金流出时不得追买。\n- 只有在跌破关键支撑、主力资金持续流出或风险显著放大时，才能给出卖出/减仓。\n- 必须输出 `dashboard.phase_decision` 七字段；盘中/午休/临近收盘要给出当前动作、观察条件和下一次检查点。\n- 盘前、非交易日或未知阶段不得伪造今日盘中走势；quote/daily_bars/technical 存在 stale、fallback、missing、fetch_failed、partial 或 estimated 时，`confidence_level` 不得为高。": "## Actionability & Stability Constraints\n\n- Do NOT flip between \"buy\" and \"sell\" based on a single day's price move or a score crossing a boundary.\n- Recommendations must consider price levels (support/resistance), volume/chip distribution, capital flows, and risk events.\n- When price is between support and resistance with unclear capital flows, output neutral recommendations like \"hold/sideways/watch\" with `decision_type` as `hold`.\n- Only give buy signals near confirmed support or after valid breakout above resistance, with supporting volume and capital flows. Do NOT chase near resistance with capital outflows.\n- Only give sell/reduce signals when key support breaks, capital flows consistently exit, or risk significantly increases.\n- Always output all seven `dashboard.phase_decision` fields. Provide current action, watch conditions, and next check time during intraday/lunch/close phases.\n- Do NOT fabricate intraday bar data during premarket, non-trading, or unknown phases. When quote/daily_bars/technical is stale, fallback, missing, fetch_failed, partial, or estimated, `confidence_level` must NOT be high.",
+
+        # JSON value schema examples
         '"stock_name": "股票中文名称"': '"stock_name": "Stock Name (localized)"',
         '"trend_prediction": "强烈看多/看多/震荡/看空/强烈看空"': '"trend_prediction": "strong_bullish/bullish/sideways/bearish/strong_bearish"',
         '"operation_advice": "买入/加仓/持有/减仓/卖出/观望"': '"operation_advice": "buy/add/hold/reduce/sell/watch"',
