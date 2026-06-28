@@ -31,9 +31,11 @@ logger = logging.getLogger(__name__)
 class BrokerService:
     """High-level facade for broker operations."""
 
-    def __init__(self, *, simulate: Optional[bool] = None) -> None:
+    def __init__(self, *, simulate: Optional[bool] = None, enabled: Optional[bool] = None) -> None:
         config = get_config()
-        self._enabled = config.broker_enabled
+        self._enabled = (
+            enabled if enabled is not None else config.broker_enabled
+        )
         self._simulate: bool = (
             simulate if simulate is not None else config.broker_simulate
         )

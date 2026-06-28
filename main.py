@@ -979,7 +979,10 @@ def run_full_analysis(
             from src.services.broker_service import BrokerService
 
             simulate_override = getattr(args, 'simulate_trades', False)
-            svc = BrokerService(simulate=True if simulate_override else None)
+            svc = BrokerService(
+                simulate=True if simulate_override else None,
+                enabled=True if simulate_override else None,
+            )
             svc.connect()
             if svc.is_connected:
                 for r in (results or []):
