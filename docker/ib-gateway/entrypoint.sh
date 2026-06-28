@@ -14,7 +14,7 @@ StoreSettingsOnServer=no
 IbControllerPort=7462
 TradingMode=${IBKR_TRADING_MODE:-paper}
 AcceptNonBrokerageSessions=yes
-ClosedownAt=221500
+ClosedownAt=22:15
 MinimizeMainWindow=Yes
 
 [Logging]
