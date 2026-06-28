@@ -16,7 +16,7 @@ import math
 import re
 import time
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, List, Tuple, Callable
+from typing import Optional, Dict, Any, List, Tuple, Callable, ClassVar
 
 import litellm
 from json_repair import repair_json
@@ -2177,6 +2177,70 @@ class GeminiAnalyzer:
             ),
         )
 
+    _SCHEMA_VALUE_TRANSLATIONS: ClassVar[Dict[str, str]] = {
+        '"stock_name": "股票中文名称"': '"stock_name": "Stock Name (localized)"',
+        '"trend_prediction": "强烈看多/看多/震荡/看空/强烈看空"': '"trend_prediction": "strong_bullish/bullish/sideways/bearish/strong_bearish"',
+        '"operation_advice": "买入/加仓/持有/减仓/卖出/观望"': '"operation_advice": "buy/add/hold/reduce/sell/watch"',
+        '"confidence_level": "高/中/低"': '"confidence_level": "high/medium/low"',
+        '"one_sentence": "一句话核心结论（30字以内，直接告诉用户做什么）"': '"one_sentence": "One-sentence conclusion (tell user what to do)"',
+        '"signal_type": "🟢买入信号/🟡持有观望/🔴卖出信号/⚠️风险警告"': '"signal_type": "🟢Buy Signal/🟡Hold Watch/🔴Sell Signal/⚠️Risk Warning"',
+        '"time_sensitivity": "立即行动/今日内/本周内/不急"': '"time_sensitivity": "immediate action/today/this week/not urgent"',
+        '"no_position": "空仓者建议：具体操作指引"': '"no_position": "No-position holder advice: specific guidance"',
+        '"has_position": "持仓者建议：具体操作指引"': '"has_position": "Position holder advice: specific guidance"',
+        '"ma_alignment": "均线排列状态描述"': '"ma_alignment": "MA alignment status description"',
+        '"bias_status": "安全/警戒/危险"': '"bias_status": "safe/warning/danger"',
+        '"volume_status": "放量/缩量/平量"': '"volume_status": "increasing/decreasing/normal"',
+        '"volume_meaning": "量能含义解读（如：缩量回调表示抛压减轻）"': '"volume_meaning": "Volume meaning interpretation"',
+        '"chip_health": "健康/一般/警惕"': '"chip_health": "healthy/fair/caution"',
+        '"latest_news": "【最新消息】近期重要新闻摘要"': '"latest_news": "Latest News Summary"',
+        '"risk_alerts": ["风险点1：具体描述", "风险点2：具体描述"]': '"risk_alerts": ["Risk 1: description", "Risk 2: description"]',
+        '"positive_catalysts": ["利好1：具体描述", "利好2：具体描述"]': '"positive_catalysts": ["Positive 1: description", "Positive 2: description"]',
+        '"earnings_outlook": "业绩预期分析（基于年报预告、业绩快报等）"': '"earnings_outlook": "Earnings outlook (based on latest reports)"',
+        '"sentiment_summary": "舆情情绪一句话总结"': '"sentiment_summary": "Market sentiment one-line summary"',
+        '"ideal_buy": "理想买入点：XX元（在MA5附近）"': '"ideal_buy": "Ideal buy point: XX (near MA5)"',
+        '"secondary_buy": "次优买入点：XX元（在MA10附近）"': '"secondary_buy": "Secondary buy point: XX (near MA10)"',
+        '"stop_loss": "止损位：XX元（跌破MA20或X%）"': '"stop_loss": "Stop loss: XX (below MA20 or X%)"',
+        '"take_profit": "目标位：XX元（前高/整数关口）"': '"take_profit": "Take profit target: XX"',
+        '"suggested_position": "建议仓位：X成"': '"suggested_position": "Suggested position: X%"',
+        '"entry_plan": "分批建仓策略描述"': '"entry_plan": "Entry plan description"',
+        '"risk_control": "风控策略描述"': '"risk_control": "Risk control strategy"',
+        '"action_window": "盘前计划/盘中跟踪/午间确认/收盘前风控/盘后复盘/非交易日观察"': '"action_window": "premarket plan/intraday tracking/lunch confirm/closing risk/postmarket review/non-trading observe"',
+        '"immediate_action": "立即行动/等待确认/观察/止损止盈预警/禁止追高/无盘中动作"': '"immediate_action": "immediate action/wait confirm/observe/stop-loss alert/no chasing/no intraday action"',
+        '"watch_conditions": ["观察条件1", "观察条件2"]': '"watch_conditions": ["Watch condition 1", "Watch condition 2"]',
+        '"next_check_time": "下一次检查点或市场本地时间"': '"next_check_time": "Next check time or market local time"',
+        '"confidence_reason": "置信度理由，说明阶段和数据质量限制"': '"confidence_reason": "Confidence reason explaining phase and data limitations"',
+        '"data_limitations": ["阶段或数据质量限制1", "阶段或数据质量限制2"]': '"data_limitations": ["Phase or data quality limitation 1", "Phase or data quality limitation 2"]',
+        '"analysis_summary": "100字综合分析摘要"': '"analysis_summary": "Comprehensive analysis summary"',
+        '"key_points": "3-5个核心看点，逗号分隔"': '"key_points": "3-5 key points, comma-separated"',
+        '"risk_warning": "风险提示"': '"risk_warning": "Risk warning"',
+        '"buy_reason": "操作理由，引用交易理念"': '"buy_reason": "Operation reason, referencing trading philosophy"',
+        '"trend_analysis": "走势形态分析"': '"trend_analysis": "Trend pattern analysis"',
+        '"short_term_outlook": "短期1-3日展望"': '"short_term_outlook": "Short-term (1-3 days) outlook"',
+        '"medium_term_outlook": "中期1-2周展望"': '"medium_term_outlook": "Medium-term (1-2 weeks) outlook"',
+        '"technical_analysis": "技术面综合分析"': '"technical_analysis": "Technical analysis"',
+        '"ma_analysis": "均线系统分析"': '"ma_analysis": "Moving average system analysis"',
+        '"volume_analysis": "量能分析"': '"volume_analysis": "Volume analysis"',
+        '"pattern_analysis": "K线形态分析"': '"pattern_analysis": "Candlestick pattern analysis"',
+        '"fundamental_analysis": "基本面分析"': '"fundamental_analysis": "Fundamental analysis"',
+        '"sector_position": "板块行业分析"': '"sector_position": "Sector analysis"',
+        '"company_highlights": "公司亮点/风险"': '"company_highlights": "Company highlights/risks"',
+        '"news_summary": "新闻摘要"': '"news_summary": "News summary"',
+        '"market_sentiment": "市场情绪"': '"market_sentiment": "Market sentiment"',
+        '"hot_topics": "相关热点"': '"hot_topics": "Related hot topics"',
+        '"data_sources": "数据来源说明"': '"data_sources": "Data sources"',
+    }
+
+    @staticmethod
+    def _translate_schema_values(prompt: str, lang: str) -> str:
+        """Replace Chinese example values in the JSON schema prompt with English equivalents.
+        Used for 'en' and 'vi' output languages so the LLM doesn't copy Chinese examples."""
+        if lang not in ("en", "vi"):
+            return prompt
+        result = prompt
+        for chinese_val, english_val in GeminiAnalyzer._SCHEMA_VALUE_TRANSLATIONS.items():
+            result = result.replace(chinese_val, english_val)
+        return result
+
     def _get_analysis_system_prompt(self, report_language: str, stock_code: str = "") -> str:
         """Build the analyzer system prompt with output-language guidance."""
         lang = normalize_report_language(report_language)
@@ -2203,41 +2267,13 @@ class GeminiAnalyzer:
                 .replace("{skills_section}", skills_section)
             )
         if lang == "en":
-            base_prompt = """## OUTPUT LANGUAGE: ENGLISH (HIGHEST PRIORITY)
-
-The main instructions below are written in Chinese, but you MUST translate all human-readable output values to English.
-This includes: `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, nested dashboard text, checklist items, and all narrative summaries.
-Do NOT output Chinese. Keep JSON keys unchanged.
-
-""" + base_prompt
-            return base_prompt + """
-
-## Output Language (highest priority)
-
-- Keep all JSON keys unchanged.
-- `decision_type` must remain `buy|hold|sell`.
-- All human-readable JSON values must be written in English.
-- Use the common English company name when you are confident; otherwise keep the original listed company name instead of inventing one.
-- This includes `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, nested dashboard text, checklist items, and all narrative summaries.
-"""
+            base_prompt = self._translate_schema_values(base_prompt, "en")
+            base_prompt = "## OUTPUT LANGUAGE: ENGLISH (HIGHEST PRIORITY)\n\nThe main instructions below are written in Chinese, but you MUST translate all human-readable output values to English.\nThis includes: `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, nested dashboard text, checklist items, and all narrative summaries.\nDo NOT output Chinese. Keep JSON keys unchanged.\n\n" + base_prompt
+            return base_prompt + "\n\n## Output Language (highest priority)\n\n- Keep all JSON keys unchanged.\n- `decision_type` must remain `buy|hold|sell`.\n- All human-readable JSON values must be written in English.\n- Use the common English company name when you are confident; otherwise keep the original listed company name instead of inventing one.\n- This includes `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, nested dashboard text, checklist items, and all narrative summaries.\n"
         if lang == "vi":
-            base_prompt = """## NGÔN NGỮ ĐẦU RA: TIẾNG VIỆT (ƯU TIÊN CAO NHẤT)
-
-Các hướng dẫn bên dưới viết bằng tiếng Trung, nhưng bạn BẮT BUỘC phải dịch tất cả giá trị đầu ra (human-readable values) sang Tiếng Việt.
-Bao gồm: `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, văn bản trong dashboard, danh sách kiểm tra, và tất cả tóm tắt tường thuật.
-TUYỆT ĐỐI không xuất ra tiếng Trung. Giữ nguyên tất cả các khóa JSON.
-
-""" + base_prompt
-            return base_prompt + """
-
-## Ngôn ngữ đầu ra (ưu tiên cao nhất)
-
-- Giữ nguyên tất cả các khóa JSON.
-- `decision_type` phải giữ nguyên `buy|hold|sell`.
-- Tất cả giá trị văn bản dành cho người dùng phải được viết bằng Tiếng Việt.
-- Sử dụng tên tiếng Anh của công ty nếu bạn chắc chắn; nếu không, giữ nguyên tên niêm yết gốc.
-- Bao gồm `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, văn bản trong dashboard, danh sách kiểm tra và tất cả tóm tắt tường thuật.
-"""
+            base_prompt = self._translate_schema_values(base_prompt, "vi")
+            base_prompt = "## NGÔN NGỮ ĐẦU RA: TIẾNG VIỆT (ƯU TIÊN CAO NHẤT)\n\nCác hướng dẫn bên dưới viết bằng tiếng Trung, nhưng bạn BẮT BUỘC phải dịch tất cả giá trị đầu ra (human-readable values) sang Tiếng Việt.\nBao gồm: `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, văn bản trong dashboard, danh sách kiểm tra, và tất cả tóm tắt tường thuật.\nTUYỆT ĐỐI không xuất ra tiếng Trung hay tiếng Anh. Giữ nguyên tất cả các khóa JSON.\n\n" + base_prompt
+            return base_prompt + "\n\n## Ngôn ngữ đầu ra (ưu tiên cao nhất)\n\n- Giữ nguyên tất cả các khóa JSON.\n- `decision_type` phải giữ nguyên `buy|hold|sell`.\n- Tất cả giá trị văn bản dành cho người dùng phải được viết bằng Tiếng Việt.\n- Sử dụng tên tiếng Anh của công ty nếu bạn chắc chắn; nếu không, giữ nguyên tên niêm yết gốc.\n- Bao gồm `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, văn bản trong dashboard, danh sách kiểm tra và tất cả tóm tắt tường thuật.\n"
         return base_prompt + """
 
 ## 输出语言（最高优先级）
