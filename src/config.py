@@ -928,13 +928,16 @@ class Config:
 
     # === 券商/模拟交易配置 (broker_provider) ===
     broker_enabled: bool = False               # 总开关: 启用 broker 集成
-    broker_provider: str = "mock"              # 券商类型: mock(模拟)/ibkr(IBKR)
+    broker_provider: str = "mock"              # 券商类型: mock(模拟)/ibkr(IBKR)/alpaca(Alpaca)
     broker_host: str = "127.0.0.1"             # IBKR TWS/Gateway 主机
     broker_port: int = 7497                    # IBKR 端口: 7497(TWS Paper)/7496(TWS Live)/4001(GW Live)/4002(GW Paper)
     broker_client_id: int = 1                  # IBKR Client ID
     broker_account_id: Optional[str] = None    # IBKR Account ID (多账户时必填)
-    broker_simulate: bool = True               # 安全开关: True 则始终使用 Mock (防误操作)
-    broker_timeout_seconds: float = 30.0       # 券商 API 超时
+    broker_simulate: bool = True               # 安全开关: True 则始终 sử dụng Mock (phòng ngừa rủi ro)
+    broker_timeout_seconds: float = 30.0       # 券商 API timeout
+    alpaca_api_key: Optional[str] = None       # Alpaca API Key
+    alpaca_api_secret: Optional[str] = None    # Alpaca API Secret
+    alpaca_paper: bool = True                  # Alpaca Paper Trading mode
 
     # === 回测配置 ===
     backtest_enabled: bool = True
@@ -1805,6 +1808,9 @@ class Config:
             broker_account_id=os.getenv('BROKER_ACCOUNT_ID') or None,
             broker_simulate=os.getenv('BROKER_SIMULATE', 'true').lower() == 'true',
             broker_timeout_seconds=parse_env_float(os.getenv('BROKER_TIMEOUT_SECONDS'), 30.0, field_name='BROKER_TIMEOUT_SECONDS', minimum=1.0),
+            alpaca_api_key=os.getenv('ALPACA_API_KEY') or None,
+            alpaca_api_secret=os.getenv('ALPACA_API_SECRET') or None,
+            alpaca_paper=os.getenv('ALPACA_PAPER', 'true').lower() == 'true',
             backtest_enabled=os.getenv('BACKTEST_ENABLED', 'true').lower() == 'true',
             backtest_eval_window_days=parse_env_int(os.getenv('BACKTEST_EVAL_WINDOW_DAYS'), 10, field_name='BACKTEST_EVAL_WINDOW_DAYS', minimum=1),
             backtest_min_age_days=parse_env_int(os.getenv('BACKTEST_MIN_AGE_DAYS'), 14, field_name='BACKTEST_MIN_AGE_DAYS', minimum=1),

@@ -26,6 +26,7 @@ from .factory import (
     create_broker,
     PROVIDER_IBKR as BROKER_IBKR,
     PROVIDER_MOCK as BROKER_MOCK,
+    PROVIDER_ALPACA as BROKER_ALPACA,
 )
 from .sync import sync_positions_to_local_db, get_broker_positions_summary
 
@@ -45,6 +46,7 @@ __all__ = [
     "create_broker",
     "BROKER_IBKR",
     "BROKER_MOCK",
+    "BROKER_ALPACA",
     "sync_positions_to_local_db",
     "get_broker_positions_summary",
 ]

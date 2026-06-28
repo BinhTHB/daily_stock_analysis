@@ -9,14 +9,16 @@ from .order import BrokerConnectionConfig
 from .base import BaseBroker
 from .ibkr_adapter import IBKRAdapter
 from .mock import MockBroker
+from .alpaca_adapter import AlpacaAdapter
 
 logger = logging.getLogger(__name__)
 
 # Provider identifiers
 PROVIDER_IBKR = "ibkr"
 PROVIDER_MOCK = "mock"
+PROVIDER_ALPACA = "alpaca"
 
-SUPPORTED_BROKERS = {PROVIDER_IBKR, PROVIDER_MOCK}
+SUPPORTED_BROKERS = {PROVIDER_IBKR, PROVIDER_MOCK, PROVIDER_ALPACA}
 
 
 class BrokerNotFoundError(ValueError):
@@ -72,3 +74,14 @@ def create_broker(
             client_id,
         )
         return IBKRAdapter(config)
+
+    if resolved == PROVIDER_ALPACA:
+        from src.config import get_config
+        app_config = get_config()
+        logger.info("Initializing Alpaca Broker Adapter (paper=%s)", app_config.alpaca_paper)
+        return AlpacaAdapter(
+            api_key=app_config.alpaca_api_key,
+            api_secret=app_config.alpaca_api_secret,
+            paper=app_config.alpaca_paper,
+            timeout_seconds=timeout_seconds,
+        )

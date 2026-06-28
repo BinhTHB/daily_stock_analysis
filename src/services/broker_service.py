@@ -22,6 +22,7 @@ from broker_provider import (
     create_broker,
     BROKER_IBKR,
     BROKER_MOCK,
+    BROKER_ALPACA,
 )
 from broker_provider.sync import sync_positions_to_local_db, get_broker_positions_summary
 
