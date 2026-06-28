@@ -35,6 +35,11 @@ echo "Configuring gatewaystart.sh with Gateway version $TWS_MAJOR_VRSN..."
 sed -i "s/TWS_MAJOR_VRSN=1019/TWS_MAJOR_VRSN=$TWS_MAJOR_VRSN/g" /opt/ibc/gatewaystart.sh
 sed -i "s/TRADING_MODE=/TRADING_MODE=${IBKR_TRADING_MODE:-paper}/g" /opt/ibc/gatewaystart.sh
 
+# Patch: do not block on 'read' when IBC errors — print log to stdout instead
+sed -i 's/^read$/cat "${log_file}" 2>\/dev\/null; exit 1/' /opt/ibc/scripts/displaybannerandlaunch.sh
+
+echo "IB Gateway $TWS_MAJOR_VRSN configured. Launching..."
+
 /opt/ibc/gatewaystart.sh -inline &
 
 # Wait until API port is ready (max 120s)
@@ -46,6 +51,13 @@ for i in $(seq 1 120); do
   fi
   sleep 1
 done
+
+# If port is still not open, print diagnostic logs
+if ! nc -z 127.0.0.1 4002 2>/dev/null; then
+  echo "❌ IB Gateway port 4002 not open! Printing IBC logs..."
+  cat /root/ibc/logs/*.txt || true
+  exit 1
+fi
 
 # Keep alive until closed (or timeout)
 wait
