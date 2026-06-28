@@ -3035,7 +3035,7 @@ class StockAnalysisPipeline:
             filepath = self.notifier.save_report_to_file(report)
             logger.info(f"决策仪表盘日报已保存: {filepath}")
         except Exception as e:
-            logger.error(f"保存本地报告失败: {e}", exc_info=True)
+            logger.error(f"保存本地报告失败: {e}")
 
     def _send_notifications(
         self,
