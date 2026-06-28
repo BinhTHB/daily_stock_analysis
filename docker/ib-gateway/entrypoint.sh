@@ -27,8 +27,12 @@ Xvfb :99 -screen 0 1280x1024x24 &
 sleep 1
 export DISPLAY=:99
 
-# Start IB Gateway via IBC
-/opt/ibc/scripts/ibcstart.sh --tws-path=/root/IBGateway --mode=bot &
+# Start IB Gateway via IBC — find version dir automatically
+GW_VER=$(ls /root/Jts/ibgateway/ 2>/dev/null | head -1)
+if [ -z "$GW_VER" ]; then
+  GW_VER=1045
+fi
+/opt/ibc/scripts/ibcstart.sh "$GW_VER" -g --mode=paper &
 
 # Wait until API port is ready (max 120s)
 echo "Waiting for IB Gateway API port 4002..."
