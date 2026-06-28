@@ -518,19 +518,62 @@ jobs:
           fi
 
   # =====================================================
-  # Trade execution — only on self-hosted Windows runner
+  # Trade execution — running headless IB Gateway on cloud runner (Docker)
   # =====================================================
   trade:
     needs: analyze
-    # chỉ chạy khi có runner windows-ibkr đang online
-    # chạy trên runner cloud nếu không có self-hosted → fail gracefully
-    runs-on: [self-hosted, windows-ibkr]
-    if: ${{ vars.IBKR_ENABLED == 'true' }}
-    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    if: ${{ secrets.IBKR_USERNAME != '' && secrets.IBKR_PASSWORD != '' }}
+    timeout-minutes: 20
 
     steps:
       - name: 检出代码
         uses: actions/checkout@v5
+
+      - name: Cache IB Gateway Docker image
+        id: cache-docker
+        uses: actions/cache@v4
+        with:
+          path: /tmp/ib-gateway-image.tar
+          key: ${{ runner.os }}-ib-gateway-${{ hashFiles('docker/ib-gateway/*') }}
+
+      - name: Build IB Gateway Image (no cache hit)
+        if: steps.cache-docker.outputs.cache-hit != 'true'
+        run: |
+          docker build -t ib-gateway:latest docker/ib-gateway/
+          docker save ib-gateway:latest -o /tmp/ib-gateway-image.tar
+
+      - name: Load Cached IB Gateway Image
+        if: steps.cache-docker.outputs.cache-hit == 'true'
+        run: |
+          docker load -i /tmp/ib-gateway-image.tar
+
+      - name: Start IB Gateway Container
+        env:
+          IBKR_USERNAME: ${{ secrets.IBKR_USERNAME }}
+          IBKR_PASSWORD: ${{ secrets.IBKR_PASSWORD }}
+          IBKR_TRADING_MODE: ${{ vars.IBKR_TRADING_MODE || 'paper' }}
+        run: |
+          echo "🚀 Starting IB Gateway container..."
+          docker run -d --name ib-gw \
+            -p 4002:4002 \
+            -e IBKR_USERNAME="${IBKR_USERNAME}" \
+            -e IBKR_PASSWORD="${IBKR_PASSWORD}" \
+            -e IBKR_TRADING_MODE="${IBKR_TRADING_MODE}" \
+            ib-gateway:latest
+          
+          # Chờ port API mở (timeout 3 phút)
+          echo "⏳ Waiting for Gateway API to open..."
+          for i in $(seq 1 180); do
+            if docker exec ib-gw sh -c 'nc -z 127.0.0.1 4002 2>/dev/null' 2>/dev/null; then
+              echo "✅ Gateway active on port 4002"
+              break
+            fi
+            sleep 1
+          done
+          
+          # In log check lỗi nếu start fail
+          docker logs ib-gw --tail 20
 
       - name: 设置 Python
         uses: actions/setup-python@v6
@@ -542,26 +585,26 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Đọc .env
-        run: |
-          if [ -f .env ]; then
-            echo "📄 .env found"
-            set -a; source .env; set +a
-          fi
-
-      - name: Execute IBKR trades
+      - name: Execute IBKR trades on Cloud
         env:
           BROKER_ENABLED: 'true'
           BROKER_PROVIDER: 'ibkr'
           BROKER_SIMULATE: 'false'
           BROKER_HOST: '127.0.0.1'
-          BROKER_PORT: '7497'
+          BROKER_PORT: '4002'
           BROKER_CLIENT_ID: ${{ github.run_id }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          echo "🔌 IBKR TWS/Gateway + trade execution"
+          echo "🔌 Executing trades..."
           FORCE_RUN_ARG=""
           if [ "${{ github.event.inputs.force_run }}" = "true" ]; then
             FORCE_RUN_ARG="--force-run"
           fi
           python main.py --no-notify $FORCE_RUN_ARG
-          echo "✅ Done"
+          echo "✅ Execution completed"
+
+      - name: Shutdown IB Gateway
+        if: always()
+        run: |
+          docker stop ib-gw || true
+          docker rm ib-gw || true
