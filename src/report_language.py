@@ -582,7 +582,7 @@ def _strip_decision_negation_connectors(text: str) -> str:
     return suffix
 
 
-def normalize_report_language(value: Optional[str], default: str = "zh") -> str:
+def normalize_report_language(value: Optional[str], default: str = "vi") -> str:
     """Normalize report language to a supported short code."""
     candidate = (value or default).strip().lower().replace(" ", "_")
     candidate = _REPORT_LANGUAGE_ALIASES.get(candidate, candidate)
