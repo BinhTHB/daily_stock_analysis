@@ -151,6 +151,11 @@ class BrokerService:
                 error_message="Broker not connected. Call connect() first.",
             )
 
+        # Normalise side to OrderSide enum
+        from broker_provider import OrderSide as _OrderSide
+        if isinstance(side, str):
+            side = _OrderSide(side.strip().lower())
+
         request = BrokerOrderRequest(
             side=side,
             symbol=symbol,
