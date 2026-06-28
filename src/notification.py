@@ -2447,6 +2447,12 @@ class NotificationService(
         """
         from pathlib import Path
         
+        # Clean up Chinese units if not in zh mode
+        config = get_config()
+        lang = str(getattr(config, "report_language", "zh")).lower()
+        if not lang.startswith("zh"):
+            content = self._clean_report_chinese_units(content, lang)
+            
         if filename is None:
             date_str = datetime.now().strftime('%Y%m%d')
             filename = f"report_{date_str}.md"
@@ -2462,6 +2468,55 @@ class NotificationService(
         
         logger.info(f"日报已保存到: {filepath}")
         return str(filepath)
+
+    def _clean_report_chinese_units(self, content: str, lang: str) -> str:
+        """Clean up raw Chinese unit labels (e.g. 亿股, 亿美元) from output report."""
+        import re
+        
+        def repl_yi(m):
+            val = float(m.group(1))
+            unit = m.group(2)
+            val_m = round(val * 100, 2)  # 1 yi = 100M
+            if val_m == int(val_m):
+                val_m = int(val_m)
+            if "美元" in unit:
+                if val_m >= 1000:
+                    return f"{round(val_m/1000, 3)} tỷ USD" if lang.startswith("vi") else f"{round(val_m/1000, 3)}B USD"
+                return f"{val_m} triệu USD" if lang.startswith("vi") else f"{val_m}M USD"
+            elif "股" in unit:
+                if val_m >= 1000:
+                    return f"{round(val_m/1000, 3)} tỷ CP" if lang.startswith("vi") else f"{round(val_m/1000, 3)}B shares"
+                return f"{val_m} triệu CP" if lang.startswith("vi") else f"{val_m}M shares"
+            else:
+                if val_m >= 1000:
+                    return f"{round(val_m/1000, 3)} tỷ" if lang.startswith("vi") else f"{round(val_m/1000, 3)}B"
+                return f"{val_m} triệu" if lang.startswith("vi") else f"{val_m}M"
+        
+        def repl_wan(m):
+            val = float(m.group(1))
+            unit = m.group(2)
+            val_k = int(round(val * 10))
+            if "股" in unit:
+                return f"{val_k} nghìn CP" if lang.startswith("vi") else f"{val_k}K shares"
+            return f"{val_k} nghìn" if lang.startswith("vi") else f"{val_k}K"
+
+        # Replace 亿/万 series
+        content = re.sub(r'(\d+\.?\d*)\s*(亿股|亿美元|亿)', repl_yi, content)
+        content = re.sub(r'(\d+\.?\d*)\s*(万股|万)', repl_wan, content)
+        
+        # General replacements
+        replacements = {
+            "行业": "Ngành" if lang.startswith("vi") else "Sector",
+            "概念": "Khái niệm" if lang.startswith("vi") else "Concept",
+            "美元": "USD",
+        }
+        for zh, sub in replacements.items():
+            content = content.replace(zh, sub)
+            
+        # Clean bare 元 if it appears after a number
+        content = re.sub(r'(\d+(?:\.\d+)?)\s*元', r'\1', content)
+        
+        return content
 
 
 class NotificationBuilder:
