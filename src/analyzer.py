@@ -2203,6 +2203,13 @@ class GeminiAnalyzer:
                 .replace("{skills_section}", skills_section)
             )
         if lang == "en":
+            base_prompt = """## OUTPUT LANGUAGE: ENGLISH (HIGHEST PRIORITY)
+
+The main instructions below are written in Chinese, but you MUST translate all human-readable output values to English.
+This includes: `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, nested dashboard text, checklist items, and all narrative summaries.
+Do NOT output Chinese. Keep JSON keys unchanged.
+
+""" + base_prompt
             return base_prompt + """
 
 ## Output Language (highest priority)
@@ -2214,6 +2221,13 @@ class GeminiAnalyzer:
 - This includes `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, nested dashboard text, checklist items, and all narrative summaries.
 """
         if lang == "vi":
+            base_prompt = """## NGÔN NGỮ ĐẦU RA: TIẾNG VIỆT (ƯU TIÊN CAO NHẤT)
+
+Các hướng dẫn bên dưới viết bằng tiếng Trung, nhưng bạn BẮT BUỘC phải dịch tất cả giá trị đầu ra (human-readable values) sang Tiếng Việt.
+Bao gồm: `stock_name`, `trend_prediction`, `operation_advice`, `confidence_level`, văn bản trong dashboard, danh sách kiểm tra, và tất cả tóm tắt tường thuật.
+TUYỆT ĐỐI không xuất ra tiếng Trung. Giữ nguyên tất cả các khóa JSON.
+
+""" + base_prompt
             return base_prompt + """
 
 ## Ngôn ngữ đầu ra (ưu tiên cao nhất)
