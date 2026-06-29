@@ -1,0 +1,53 @@
+name: Test Alpaca Paper Trade (demo)
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: "Bỏ qua kiểm tra ngày giao dịch"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  test-trade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute trade (Alpaca Paper)
+        env:
+          # Override defaults from the main workflow to use Alpaca
+          BROKER_ENABLED: 'true'
+          BROKER_PROVIDER: alpaca
+          BROKER_SIMULATE: 'false'
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}   # <-- PHẢI CÓ secret này
+          ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}   # <-- PHẢI CÓ secret này
+          ALPACA_PAPER: 'true'
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Self‑contained test stock: use a US ticker that is widely available
+          STOCK_LIST: AAPL
+          # Optional: ensure we skip market‑day checks for a deterministic demo
+          TRADING_DAY_CHECK_ENABLED: 'false'
+        run: |
+          echo "🚀 Starting Alpaca paper‑trade test"
+          echo "Symbol to trade: $STOCK_LIST"
+          if [ -z "${{ secrets.ALPACA_API_KEY }}" ]; then
+            echo "⚠️  ALPACA_API_KEY secret is missing – trade will silently skip"
+            # Set a dummy broker config that will block real execution
+            export BROKER_ENABLED='false'
+          fi
+          python main.py --no-notify
+          echo "✅ Execution completed"
