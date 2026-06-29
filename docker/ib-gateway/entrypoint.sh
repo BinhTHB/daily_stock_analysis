@@ -5,8 +5,8 @@ set -e
 mkdir -p $HOME/ibc
 cat > $HOME/ibc/config.ini <<EOF
 [Settings]
-IbLoginId=${IBKR_USERNAME}
-IbPassword=${IBKR_PASSWORD}
+IbLoginId=${IBKR_USERNAME:-edemo}
+IbPassword=${IBKR_PASSWORD:-demouser}
 PasswordEncrypted=no
 StoreSettingsOnServer=no
 
