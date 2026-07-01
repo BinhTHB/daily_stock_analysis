@@ -1,0 +1,52 @@
+name: Schedule Trigger
+
+# 工作流说明：
+# 1. main 是默认分支，但实际分析逻辑已迁到 working-branch。
+# 2. GitHub 定时任务（schedule）只在默认分支上生效，因此本文件作为调度入口放在 main。
+# 3. 本文件只负责按 cron 触发，并使用 workflow_call 跨分支调用 working-branch 上的实际工作流。
+
+on:
+  # 定时触发 - 每天北京时间 05:00 / 越南时间 04:00 (UTC 21:00)
+  schedule:
+    - cron: '0 21 * * 1-5'   # 周一到周五，UTC 21:00 = 越南时间 04:00 (针对美股收盘)
+
+  # 手动触发（用于立即测试调度链路是否正常）
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: '运行模式'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full          # 完整分析（股票+大盘）
+          - market-only   # 仅大盘复盘
+          - stocks-only   # 仅股票分析
+      force_run:
+        description: '强制运行（跳过交易日检查）'
+        required: false
+        default: false
+        type: boolean
+      demo_mode:
+        description: '使用 Demo 账号运行（测试用途）'
+        required: false
+        default: false
+        type: boolean
+
+# 并发控制：与被调用的实际工作流保持同一组，避免两边同时跑
+concurrency:
+  group: stock-analysis
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    name: 触发 working-branch 上的分析工作流
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 转发到 working-branch
+        uses: ./.github/workflows/00-daily-analysis.yml@working-branch
+        with:
+          mode: ${{ github.event.inputs.mode || 'full' }}
+          force_run: ${{ github.event.inputs.force_run || false }}
+          demo_mode: ${{ github.event.inputs.demo_mode || false }}
