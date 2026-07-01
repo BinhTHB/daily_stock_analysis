@@ -1,10 +1,6 @@
 name: Daily Stock Analysis
 
 on:
-  # 定时触发 - 每天北京时间 05:00 / 越南时间 04:00 (UTC 21:00)
-  schedule:
-    - cron: '0 21 * * 1-5'     # 周一到周五，UTC 21:00 = 越南时间 04:00 (针对美股收盘)
-  
   # 手动触发
   workflow_dispatch:
     inputs:
