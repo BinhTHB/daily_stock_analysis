@@ -35,6 +35,10 @@ concurrency:
   group: stock-analysis
   cancel-in-progress: false
 
+# Required to dispatch another workflow via API (actions:write)
+permissions:
+  actions: write
+
 jobs:
   trigger:
     runs-on: ubuntu-latest
