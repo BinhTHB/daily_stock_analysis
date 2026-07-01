@@ -1,16 +1,14 @@
 name: Schedule Trigger
 
-# 工作流说明：
-# 1. main 是默认分支，但实际分析逻辑已迁到 working-branch。
-# 2. GitHub 定时任务（schedule）只在默认分支上生效，因此本文件作为调度入口放在 main。
-# 3. 本文件只负责按 cron 触发，并使用 workflow_call 跨分支调用 working-branch 上的实际工作流。
+# 本文件是定时触发入口，只存在于默认分支（main）上。
+# GitHub 定时任务（schedule）只在默认分支生效。
+# 实际分析逻辑位于 working-branch 的 00-daily-analysis.yml 中。
+# 本文件通过 API workflow_dispatch 转发 trigger 到 working-branch。
 
 on:
-  # 定时触发 - 每天北京时间 05:00 / 越南时间 04:00 (UTC 21:00)
   schedule:
     - cron: '0 21 * * 1-5'   # 周一到周五，UTC 21:00 = 越南时间 04:00 (针对美股收盘)
 
-  # 手动触发（用于立即测试调度链路是否正常）
   workflow_dispatch:
     inputs:
       mode:
@@ -19,9 +17,9 @@ on:
         default: 'full'
         type: choice
         options:
-          - full          # 完整分析（股票+大盘）
-          - market-only   # 仅大盘复盘
-          - stocks-only   # 仅股票分析
+          - full
+          - market-only
+          - stocks-only
       force_run:
         description: '强制运行（跳过交易日检查）'
         required: false
@@ -33,20 +31,32 @@ on:
         default: false
         type: boolean
 
-# 并发控制：与被调用的实际工作流保持同一组，避免两边同时跑
 concurrency:
   group: stock-analysis
   cancel-in-progress: false
 
 jobs:
   trigger:
-    name: 触发 working-branch 上的分析工作流
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: 转发到 working-branch
-        uses: ./.github/workflows/00-daily-analysis.yml@working-branch
+      - name: Trigger analysis on working-branch
+        uses: actions/github-script@v6
         with:
-          mode: ${{ github.event.inputs.mode || 'full' }}
-          force_run: ${{ github.event.inputs.force_run || false }}
-          demo_mode: ${{ github.event.inputs.demo_mode || false }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const workflow = '00-daily-analysis.yml';
+            const ref = 'working-branch';
+            const inputs = {
+              mode: '${{ github.event.inputs.mode || 'full' }}',
+              force_run: '${{ github.event.inputs.force_run || 'false' }}',
+              demo_mode: '${{ github.event.inputs.demo_mode || 'false' }}',
+            };
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: workflow,
+              ref: ref,
+              inputs: inputs,
+            });
+            console.log(`Triggered ${workflow} on ${ref} with inputs:`, inputs);
