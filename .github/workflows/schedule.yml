@@ -1,18 +1,18 @@
 name: Schedule Trigger
 
-# 本文件是定时触发入口，只存在于默认分支（main）上。
-# GitHub 定时任务（schedule）只在默认分支生效。
-# 实际分析逻辑位于 working-branch 的 00-daily-analysis.yml 中。
-# 本文件通过 API workflow_dispatch 转发 trigger 到 working-branch。
+# This file is the entry point for scheduled runs and resides only on the default branch (main).
+# GitHub Actions schedule trigger only runs on the default branch.
+# The actual execution logic is located in .github/workflows/00-daily-analysis.yml on working-branch.
+# This workflow triggers the target workflow on working-branch using the workflow_dispatch API.
 
 on:
   schedule:
-    - cron: '0 21 * * 1-5'   # 周一到周五，UTC 21:00 = 越南时间 04:00 (针对美股收盘)
+    - cron: '0 21 * * 1-5'   # Monday to Friday, UTC 21:00 = Vietnam time 04:00 (for US market close)
 
   workflow_dispatch:
     inputs:
       mode:
-        description: '运行模式'
+        description: 'Execution Mode'
         required: true
         default: 'full'
         type: choice
@@ -21,12 +21,12 @@ on:
           - market-only
           - stocks-only
       force_run:
-        description: '强制运行（跳过交易日检查）'
+        description: 'Force execution (skip trading day check)'
         required: false
         default: false
         type: boolean
       demo_mode:
-        description: '使用 Demo 账号运行（测试用途）'
+        description: 'Run with Demo account (testing purpose)'
         required: false
         default: false
         type: boolean
