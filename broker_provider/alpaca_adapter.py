@@ -254,17 +254,50 @@ class AlpacaAdapter(BaseBroker):
                 
                 time.sleep(poll_interval)
 
-            # Timeout fallback: cancel order if still pending
-            logger.warning("Order %s timed out. Attempting cancel...", order_id)
-            self.cancel_order(order_id)
+            # Timeout fallback: leave order pending with Alpaca if still active
+            logger.warning("Order %s timed out. Leaving it active in Alpaca.", order_id)
+            try:
+                final_resp = requests.get(
+                    f"{self.base_url}/orders/{order_id}",
+                    headers=self.headers,
+                    timeout=5.0,
+                )
+                if final_resp.status_code == 200:
+                    status_info = final_resp.json()
+                    alpaca_status = status_info.get("status", "")
+                    filled_qty = float(status_info.get("filled_qty", 0.0))
+                    avg_price = float(status_info.get("filled_avg_price", 0.0))
+                    status = BrokerOrderStatus.SUBMITTED
+                    if alpaca_status in ("filled", "partially_filled"):
+                        status = BrokerOrderStatus.FILLED if alpaca_status == "filled" else BrokerOrderStatus.PARTIALLY_FILLED
+                    elif alpaca_status in ("canceled", "cancelled"):
+                        status = BrokerOrderStatus.CANCELLED
+                    elif alpaca_status in ("rejected", "suspended"):
+                        status = BrokerOrderStatus.REJECTED
+                    logger.info("Order %s final status: %s filled=%.2f, avg=%.2f", order_id, status, filled_qty, avg_price)
+                    return BrokerOrderResult(
+                        success=status in (BrokerOrderStatus.FILLED, BrokerOrderStatus.PARTIALLY_FILLED, BrokerOrderStatus.SUBMITTED),
+                        order_id=order_id,
+                        external_id=request.external_id or "",
+                        symbol=request.symbol,
+                        side=request.side,
+                        filled_quantity=filled_qty,
+                        avg_fill_price=avg_price,
+                        status=status,
+                        error_message=None if status in (BrokerOrderStatus.FILLED, BrokerOrderStatus.PARTIALLY_FILLED, BrokerOrderStatus.SUBMITTED) else f"Order status is: {alpaca_status}",
+                    )
+            except Exception as exc:
+                logger.warning("Failed to fetch final order status: %s", exc)
             return BrokerOrderResult(
-                success=False,
+                success=True,
                 order_id=order_id,
                 external_id=request.external_id or "",
                 symbol=request.symbol,
                 side=request.side,
-                status=BrokerOrderStatus.FAILED,
-                error_message="Order timed out.",
+                filled_quantity=0.0,
+                avg_fill_price=0.0,
+                status=BrokerOrderStatus.SUBMITTED,
+                error_message="Order pending after timeout (still active in Alpaca).",
             )
 
         except Exception as exc:
