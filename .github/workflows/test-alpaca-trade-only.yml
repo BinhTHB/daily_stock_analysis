@@ -1,0 +1,47 @@
+name: Test Alpaca Paper Trade (Trade Only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      stock_list:
+        description: "Danh sách mã cổ phiếu cần test (ví dụ: AAPL,MSFT,NVDA)"
+        required: false
+        default: "AAPL,MSFT"
+        type: string
+
+jobs:
+  test-trade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute trade (Alpaca Paper)
+        env:
+          BROKER_ENABLED: 'true'
+          BROKER_PROVIDER: alpaca
+          BROKER_SIMULATE: 'false'
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
+          ALPACA_PAPER: 'true'
+          STOCK_LIST: ${{ github.event.inputs.stock_list }}
+        run: |
+          echo "🚀 Starting Alpaca trade-only test"
+          echo "Symbol(s) to trade: $STOCK_LIST"
+          if [ -z "$ALPACA_API_KEY" ]; then
+            echo "⚠️ ALPACA_API_KEY secret is missing – exiting"
+            exit 1
+          fi
+          python scripts/alpaca_trade_test.py
+          echo "✅ Execution completed"
